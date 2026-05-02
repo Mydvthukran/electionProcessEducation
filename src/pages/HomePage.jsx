@@ -312,8 +312,13 @@ export default function HomePage() {
 
         {/* ── Footer ───────────────────────────────────────────────── */}
         <footer className="footer" role="contentinfo">
-          <strong>Note:</strong> This is an educational assistant, not a legal authority. For
-          exact deadlines or eligibility questions, use your official election office.
+          <p>
+            <strong>Note:</strong> This is an educational assistant, not a legal authority. For
+            exact deadlines or eligibility questions, use your official election office.
+          </p>
+          <p style={{ marginTop: '0.75rem', opacity: 0.8, fontSize: '0.9rem' }}>
+            Built for the <strong>Google and H2Skill Virtual Prompt War Hackathon</strong>.
+          </p>
         </footer>
       </main>
     </div>
