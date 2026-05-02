@@ -1,7 +1,7 @@
 /**
  * useElectionAssistant Hook
  * Manages conversation state and logic for the election assistant
- * 
+ *
  * Features:
  * - Message history management
  * - Async question answering (supports Google Gemini API)
@@ -10,7 +10,7 @@
  * - Conversation reset capability
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { getAnswer } from '../services/electionAdvisor.js';
 
 const initialMessages = [
@@ -19,14 +19,24 @@ const initialMessages = [
     role: 'assistant',
     title: 'Assistant',
     type: 'intro',
-    text:
-      'Hello. I can explain the election process in plain language. Ask about registration, timelines, ballot steps, or counting results.',
+    text: 'Hello. I can explain the election process in plain language. Ask about registration, timelines, ballot steps, or counting results.',
   },
 ];
 
 /**
- * Custom hook for managing election assistant conversation
- * @returns {Object} Conversation state and handlers
+ * Custom hook for managing election assistant conversation state.
+ *
+ * @returns {Object} Conversation state and interaction handlers:
+ *   - messages {Array} - Full conversation history
+ *   - status {string} - Current status message shown to users
+ *   - question {string} - Current value of the question input
+ *   - setQuestion {Function} - Setter for the question input
+ *   - topic {string} - Currently selected topic filter
+ *   - setTopic {Function} - Setter for the topic filter
+ *   - transcriptRef {React.RefObject} - Ref for the transcript container (auto-scroll)
+ *   - askAssistant {Function} - Sends a question and retrieves an answer
+ *   - clearConversation {Function} - Resets conversation to initial state
+ *   - isLoading {boolean} - True while an API call is in flight
  */
 export function useElectionAssistant() {
   const [messages, setMessages] = useState(initialMessages);
@@ -45,95 +55,98 @@ export function useElectionAssistant() {
   }, [messages]);
 
   /**
-   * Adds a message to the conversation
-   * @param {Object} message - Message to add
+   * Appends a message to the conversation transcript.
+   *
+   * @param {Object} message - Message object to append
    * @private
    */
-  function pushMessage(message) {
+  const pushMessage = useCallback((message) => {
     setMessages((current) => [...current, message]);
-  }
+  }, []);
 
   /**
-   * Asks the assistant a question
-   * Supports both text input and custom questions
-   * Uses Google Gemini API when available, falls back to local responses
-   * 
-   * @param {string} customQuestion - Optional custom question (overrides input field)
-   * @returns {Promise<boolean>} True if question was asked, false if validation failed
-   * 
+   * Sends a question to the election assistant and appends the response.
+   * Supports both the text input field and externally supplied questions
+   * (e.g., from suggested prompt buttons).
+   *
+   * @param {string} [customQuestion] - Optional override; uses the input field value when omitted.
+   * @returns {Promise<boolean>} Resolves to true on success, false on validation failure or error.
+   *
    * @example
-   * // Using input field
+   * // From the input field
    * await askAssistant();
-   * 
-   * // Using custom question
-   * await askAssistant("How do I register to vote?");
+   *
+   * // From a prompt button
+   * await askAssistant('How do I register to vote?');
    */
-  async function askAssistant(customQuestion) {
-    const trimmedQuestion = (customQuestion ?? question).trim();
-    if (!trimmedQuestion) {
-      setStatus('Type a question to get started');
-      return false;
-    }
+  const askAssistant = useCallback(
+    async (customQuestion) => {
+      const trimmedQuestion = (customQuestion ?? question).trim();
+      if (!trimmedQuestion) {
+        setStatus('Type a question to get started');
+        return false;
+      }
 
-    setIsLoading(true);
+      setIsLoading(true);
 
-    try {
-      // Add user message immediately
-      pushMessage({
-        id: `${Date.now()}-user`,
-        role: 'user',
-        title: 'You asked',
-        type: 'text',
-        text: trimmedQuestion,
-      });
+      try {
+        // Add user message immediately for responsive feel
+        pushMessage({
+          id: `${Date.now()}-user`,
+          role: 'user',
+          title: 'You asked',
+          type: 'text',
+          text: trimmedQuestion,
+        });
 
-      // Get answer (async, supports Gemini API)
-      const { topic: resolvedTopic, data, source } = await getAnswer(trimmedQuestion, topic);
+        // Retrieve answer (async — may call Google Gemini API)
+        const { topic: resolvedTopic, data, source } = await getAnswer(trimmedQuestion, topic);
 
-      // Add assistant response
-      pushMessage({
-        id: `${Date.now()}-assistant`,
-        role: 'assistant',
-        title: 'Assistant',
-        type: 'answer',
-        summary: data.summary,
-        steps: data.steps,
-        next: data.next,
-        topic: resolvedTopic,
-        query: trimmedQuestion,
-        source, // 'gemini' or 'local'
-      });
+        // Add assistant response
+        pushMessage({
+          id: `${Date.now()}-assistant`,
+          role: 'assistant',
+          title: 'Assistant',
+          type: 'answer',
+          summary: data.summary,
+          steps: data.steps,
+          next: data.next,
+          topic: resolvedTopic,
+          query: trimmedQuestion,
+          source, // 'gemini' or 'local'
+        });
 
-      // Update status to show data source
-      const sourceLabel = source === 'gemini' ? ' (AI)' : ' (local)';
-      setStatus(`Explained ${resolvedTopic}${sourceLabel}`);
-      setQuestion('');
-      return true;
-    } catch (error) {
-      console.error('Error asking assistant:', error);
-      pushMessage({
-        id: `${Date.now()}-error`,
-        role: 'assistant',
-        title: 'Assistant',
-        type: 'error',
-        text: 'Sorry, I encountered an error. Please try again.',
-      });
-      setStatus('Error processing question');
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }
+        const sourceLabel = source === 'gemini' ? ' (AI)' : ' (local)';
+        setStatus(`Explained ${resolvedTopic}${sourceLabel}`);
+        setQuestion('');
+        return true;
+      } catch (error) {
+        console.error('Error asking assistant:', error);
+        pushMessage({
+          id: `${Date.now()}-error`,
+          role: 'assistant',
+          title: 'Assistant',
+          type: 'error',
+          text: 'Sorry, I encountered an error processing your question. Please try again.',
+        });
+        setStatus('Error processing question');
+        return false;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [question, topic, pushMessage],
+  );
 
   /**
-   * Clears conversation and resets to initial state
+   * Resets the conversation transcript and all state to the initial values.
    */
-  function clearConversation() {
+  const clearConversation = useCallback(() => {
     setMessages(initialMessages);
     setStatus('Chat reset');
     setQuestion('');
     setIsLoading(false);
-  }
+  }, []);
 
   return {
     messages,

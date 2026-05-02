@@ -1,7 +1,7 @@
 /**
  * AssistantPanel Component
  * Main chat interface for the election assistant
- * 
+ *
  * Displays:
  * - Assistant introduction
  * - Suggested prompts (quick access buttons)
@@ -34,12 +34,12 @@ export default function AssistantPanel({
           <h2 id="assistant-title">Ask a question</h2>
           <p>Try a topic, pick a guided demo scenario, or type your own question.</p>
         </div>
-        <div className="tag" aria-live="polite" id="status">
+        <div className="tag" aria-live="polite" aria-atomic="true" id="status">
           {isLoading ? '⏳ Thinking...' : status}
         </div>
       </div>
 
-      <div className="pill-row" aria-label="Suggested prompts">
+      <div className="pill-row" role="group" aria-label="Suggested prompts">
         {prompts.map((prompt) => (
           <button
             key={prompt.label}
@@ -54,7 +54,7 @@ export default function AssistantPanel({
         ))}
       </div>
 
-      <div className="controls" role="search">
+      <div className="controls" role="search" aria-label="Ask a question about elections">
         <div className="input-group">
           <label htmlFor="question">Your question</label>
           <input
@@ -103,15 +103,18 @@ export default function AssistantPanel({
       <div className="hero-actions" style={{ marginTop: 0 }}>
         <button
           className="button primary"
+          id="askButton"
           type="button"
           disabled={isLoading}
           onClick={onAsk}
           aria-label="Ask the assistant a question"
+          aria-busy={isLoading}
         >
           {isLoading ? 'Thinking...' : 'Ask assistant'}
         </button>
         <button
           className="button secondary"
+          id="clearButton"
           type="button"
           disabled={isLoading}
           onClick={onClear}

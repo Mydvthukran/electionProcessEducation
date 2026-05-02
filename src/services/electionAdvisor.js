@@ -47,14 +47,14 @@ export function inferTopic(question, selectedTopic = 'general') {
     return 'timeline';
   }
 
+  // Vote counting keywords (check before ballot to catch 'ballot counting')
+  if (/(count|results|certify|tally|verify|how are votes counted|ballot count|counting take)/.test(normalized)) {
+    return 'counting';
+  }
+
   // Ballot/voting options keywords
   if (/(ballot|early|mail|absentee|poll|voting location|how to vote)/.test(normalized)) {
     return 'ballot';
-  }
-
-  // Vote counting keywords
-  if (/(count|results|certify|tally|verify|how are votes counted)/.test(normalized)) {
-    return 'counting';
   }
 
   // Default to general for other questions

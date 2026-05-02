@@ -14,8 +14,8 @@ export default function HomePage() {
 
   return (
     <div className="shell">
-      <header className="topbar reveal">
-        <div className="brand" aria-label="Election Guide Assistant">
+      <header className="topbar reveal" role="banner">
+        <div className="brand" aria-label="Election Guide Assistant home">
           <div className="brand-mark" aria-hidden="true">
             E
           </div>
@@ -24,11 +24,11 @@ export default function HomePage() {
             <div className="tag">Interactive civic learning</div>
           </div>
         </div>
-        <div className="tag">Clear steps • Timeline • Accessible chat</div>
+        <div className="tag" aria-label="Key features">Clear steps • Timeline • Accessible chat</div>
       </header>
 
       <main id="main">
-        <section className="hero">
+        <section className="hero" aria-label="Introduction">
           <div className="hero-copy reveal delay-1">
             <div className="tag">Understand the process without jargon</div>
             <h1>Follow every election step with confidence.</h1>
@@ -61,13 +61,14 @@ export default function HomePage() {
 
             <div className="aside-card">
               <strong>Demo scenarios</strong>
-              <p className="aside-note">Use these to show judges the product adapts to a real voter situation.</p>
-              <div className="pill-row" style={{ marginTop: '0.85rem' }}>
+              <p className="aside-note">Use these to show the product adapts to a real voter situation.</p>
+              <div className="pill-row" style={{ marginTop: '0.85rem' }} role="group" aria-label="Demo scenarios">
                 {demoScenarios.map((scenario) => (
                   <button
                     key={scenario.title}
                     className="pill"
                     type="button"
+                    aria-label={`Demo scenario: ${scenario.title}`}
                     onClick={() => assistant.askAssistant(scenario.prompt)}
                   >
                     {scenario.title}
@@ -78,7 +79,7 @@ export default function HomePage() {
           </aside>
         </section>
 
-        <section className="dashboard">
+        <section className="dashboard" aria-label="Election assistant and timeline">
           <AssistantPanel
             question={assistant.question}
             topic={assistant.topic}
@@ -103,17 +104,17 @@ export default function HomePage() {
               <div className="tag">4-step overview</div>
             </div>
 
-            <div className="timeline">
+            <ol className="timeline" id="timelineList" aria-label="Election process steps">
               {timelineSteps.map((step, index) => (
-                <section className="step" key={step.title} aria-label={step.title}>
-                  <div className="step-number">{index + 1}</div>
+                <li className="step" key={step.title} aria-label={`Step ${index + 1}: ${step.title}`}>
+                  <div className="step-number" aria-hidden="true">{index + 1}</div>
                   <div>
                     <h3>{step.title}</h3>
                     <p>{step.copy}</p>
                   </div>
-                </section>
+                </li>
               ))}
-            </div>
+            </ol>
           </article>
         </section>
 
@@ -126,7 +127,7 @@ export default function HomePage() {
           ))}
         </section>
 
-        <footer className="footer">
+        <footer className="footer" role="contentinfo">
           <strong>Note:</strong> This is an educational assistant, not a legal authority. For exact deadlines or
           eligibility questions, use your official election office.
         </footer>

@@ -1,7 +1,7 @@
 /**
  * MessageTranscript Component
  * Displays conversation history between user and assistant
- * 
+ *
  * Features:
  * - Role-based styling (user vs. assistant messages)
  * - Structured answer rendering (summary, steps, next action)
@@ -12,13 +12,22 @@
 
 export default function MessageTranscript({ messages, transcriptRef }) {
   return (
-    <div className="transcript" ref={transcriptRef} aria-live="polite" aria-relevant="additions text">
+    <div
+      className="transcript"
+      id="transcript"
+      ref={transcriptRef}
+      role="log"
+      aria-live="polite"
+      aria-relevant="additions text"
+      aria-label="Conversation history"
+      tabIndex={0}
+    >
       {messages.map((message) => {
         const isAssistant = message.role === 'assistant';
         const sourceLabel = message.source ? `[${message.source.toUpperCase()}]` : '';
 
         return (
-          <article key={message.id} className="message" data-role={message.role}>
+          <article key={message.id} className="message" data-role={message.role} aria-label={`${message.title} message`}>
             <div className="meta">{message.title}</div>
 
             <div className="bubble">
@@ -30,7 +39,7 @@ export default function MessageTranscript({ messages, transcriptRef }) {
                   <p>
                     <strong>What to remember:</strong>
                   </p>
-                  <ol>
+                  <ol aria-label="Key steps">
                     {message.steps.map((step) => (
                       <li key={step}>{step}</li>
                     ))}
@@ -43,7 +52,7 @@ export default function MessageTranscript({ messages, transcriptRef }) {
                   </p>
                 </>
               ) : message.type === 'error' ? (
-                <p style={{ color: 'var(--error, #c00)' }}>{message.text}</p>
+                <p role="alert" style={{ color: 'var(--error, #c00)' }}>{message.text}</p>
               ) : (
                 <p>{message.text}</p>
               )}
