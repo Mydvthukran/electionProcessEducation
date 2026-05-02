@@ -6,11 +6,14 @@
  * - Role-based styling (user vs. assistant messages)
  * - Structured answer rendering (summary, steps, next action)
  * - Auto-scroll support (via ref)
- * - Accessibility support (ARIA live region)
+ * - Accessibility support (ARIA live region, role="log")
  * - Source attribution (shows if response came from Gemini AI or local)
+ * - Memoized with React.memo to prevent renders on unrelated state changes
  */
 
-export default function MessageTranscript({ messages, transcriptRef }) {
+import { memo } from 'react';
+
+const MessageTranscript = memo(function MessageTranscript({ messages, transcriptRef }) {
   return (
     <div
       className="transcript"
@@ -62,4 +65,6 @@ export default function MessageTranscript({ messages, transcriptRef }) {
       })}
     </div>
   );
-}
+});
+
+export default MessageTranscript;

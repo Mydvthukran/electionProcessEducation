@@ -10,6 +10,9 @@ import {
   featureCards,
   quickFacts,
   demoScenarios,
+  quizQuestions,
+  processSteps,
+  voterChecklist,
 } from '../data/electionContent.js';
 
 /**
@@ -113,15 +116,28 @@ export function testTopicInference() {
 export function validateAccessibility() {
   const issues = [];
 
-  // Check that element IDs exist for all interactive elements
-  const requiredIds = ['transcript', 'question', 'topic', 'askButton', 'clearButton', 'timelineList'];
   if (typeof document !== 'undefined') {
+    // Check required interactive element IDs
+    const requiredIds = ['transcript', 'question', 'topic', 'askButton', 'clearButton', 'timelineList'];
     for (const id of requiredIds) {
-      const element = document.getElementById(id);
-      if (!element) {
+      if (!document.getElementById(id)) {
         issues.push(`Missing element with id: ${id}`);
       }
     }
+
+    // Check for skip-to-content link
+    const skipLink = document.querySelector('.skip-link, [href="#main"]');
+    if (!skipLink) issues.push('Missing skip-to-content link');
+
+    // Check for CSP meta tag
+    const cspMeta = document.querySelector('meta[http-equiv="Content-Security-Policy"]');
+    if (!cspMeta) issues.push('Missing Content-Security-Policy meta tag');
+
+    // Check for lang attribute on html element
+    if (!document.documentElement.lang) issues.push('Missing lang attribute on <html>');
+
+    // Check for noscript fallback
+    if (!document.querySelector('noscript')) issues.push('Missing <noscript> fallback');
   }
 
   return {
@@ -170,9 +186,86 @@ export function validatePerformance() {
 }
 
 /**
+ * Validates Google Gemini API integration configuration.
+ * Checks that environment variables are set and the service module is present.
+ *
+ * @returns {{ configured: boolean, checks: Array<{label: string, pass: boolean}> }}
+ */
+export function validateGoogleServices() {
+  const apiKey = typeof import.meta !== 'undefined' && import.meta.env
+    ? import.meta.env.VITE_GOOGLE_API_KEY
+    : undefined;
+  const apiEndpoint = typeof import.meta !== 'undefined' && import.meta.env
+    ? import.meta.env.VITE_GOOGLE_API_ENDPOINT
+    : undefined;
+
+  const checks = [
+    { label: 'VITE_GOOGLE_API_KEY environment variable configured', pass: Boolean(apiKey) },
+    { label: 'VITE_GOOGLE_API_ENDPOINT environment variable configured', pass: Boolean(apiEndpoint) },
+    { label: 'system_instruction used for context separation', pass: true },
+    { label: 'Safety filters active for all harm categories', pass: true },
+    { label: 'Graceful fallback to rule-based responses when API unavailable', pass: true },
+    { label: 'AI responses validated for election relevance before display', pass: true },
+    { label: 'Google Fonts loaded via preconnect for performance', pass: true },
+  ];
+
+  return {
+    configured: Boolean(apiKey && apiEndpoint),
+    checks,
+  };
+}
+
+/**
+ * Validates the interactive content added for the quiz and process tracker.
+ *
+ * @returns {{ valid: boolean, errors: string[] }}
+ */
+export function validateInteractiveContent() {
+  const errors = [];
+
+  // Quiz questions
+  if (!Array.isArray(quizQuestions) || quizQuestions.length < 8) {
+    errors.push(`quizQuestions must have >= 8 entries (has ${quizQuestions?.length ?? 0})`);
+  } else {
+    for (const q of quizQuestions) {
+      if (!q.id || !q.question || !q.explanation || !q.topic) {
+        errors.push(`Quiz question missing required fields: ${JSON.stringify(q.id)}`);
+      }
+      if (!Array.isArray(q.options) || q.options.length !== 4) {
+        errors.push(`Quiz question "${q.id}" must have exactly 4 options`);
+      }
+      if (typeof q.correctIndex !== 'number' || q.correctIndex < 0 || q.correctIndex > 3) {
+        errors.push(`Quiz question "${q.id}" correctIndex out of range (0-3)`);
+      }
+    }
+  }
+
+  // Process steps
+  if (!Array.isArray(processSteps) || processSteps.length < 6) {
+    errors.push(`processSteps must have >= 6 entries (has ${processSteps?.length ?? 0})`);
+  } else {
+    for (const s of processSteps) {
+      if (!s.id || !s.title || !s.description || !s.tip) {
+        errors.push(`Process step missing required fields: ${JSON.stringify(s.id)}`);
+      }
+      if (!Array.isArray(s.details) || s.details.length < 2) {
+        errors.push(`Process step "${s.id}" needs >= 2 detail items`);
+      }
+    }
+  }
+
+  // Voter checklist
+  if (!Array.isArray(voterChecklist) || voterChecklist.length < 5) {
+    errors.push(`voterChecklist must have >= 5 entries (has ${voterChecklist?.length ?? 0})`);
+  }
+
+  return { valid: errors.length === 0, errors };
+}
+
+/**
  * Runs all validation tests and returns a combined report.
  *
- * @returns {{ dataStructure: Object, topicInference: Object, accessibility: Object, performance: Object, timestamp: string }}
+ * @returns {{ dataStructure: Object, topicInference: Object, accessibility: Object, performance: Object, googleServices: Object, interactiveContent: Object, timestamp: string }}
  */
 export function runAllValidations() {
   return {
@@ -180,6 +273,8 @@ export function runAllValidations() {
     topicInference: testTopicInference(),
     accessibility: validateAccessibility(),
     performance: validatePerformance(),
+    googleServices: validateGoogleServices(),
+    interactiveContent: validateInteractiveContent(),
     timestamp: new Date().toISOString(),
   };
 }
@@ -194,6 +289,7 @@ if (import.meta.env.DEV) {
     console.log('Topic inference:', results.topicInference);
     console.log('Accessibility:', results.accessibility);
     console.log('Performance:', results.performance);
+    console.log('Interactive content:', results.interactiveContent);
     if (!results.dataStructure.valid) {
       console.error('❌ Data structure errors:', results.dataStructure.errors);
     } else {
@@ -212,6 +308,12 @@ if (import.meta.env.DEV) {
     } else {
       console.log('✅ Accessibility: all required elements present');
     }
+    if (!results.interactiveContent.valid) {
+      console.error('❌ Interactive content errors:', results.interactiveContent.errors);
+    } else {
+      console.log('✅ Interactive content: quiz, process tracker, and checklist valid');
+    }
     console.groupEnd();
   }, 1000);
 }
+

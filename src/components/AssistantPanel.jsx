@@ -66,6 +66,7 @@ export default function AssistantPanel({
             autoComplete="off"
             placeholder="Example: When should I check my registration?"
             value={question}
+            maxLength={500}
             disabled={isLoading}
             onChange={(event) => onQuestionChange(event.target.value)}
             onKeyDown={(event) => {
@@ -74,8 +75,16 @@ export default function AssistantPanel({
                 onAsk();
               }
             }}
-            aria-describedby="status"
+            aria-describedby="status question-chars"
           />
+          <span
+            id="question-chars"
+            className={`char-counter${question.length >= 490 ? ' char-counter--danger' : question.length >= 400 ? ' char-counter--warn' : ''}`}
+            aria-live="polite"
+            aria-atomic="true"
+          >
+            {question.length > 0 ? `${question.length}/500` : ''}
+          </span>
         </div>
 
         <div className="input-group" style={{ alignSelf: 'end' }}>
